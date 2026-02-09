@@ -2,7 +2,8 @@ import sys
 import json
 import os
 from typing import Optional, Dict, List, Any
-from modules.schedule_tool import TaskManager # <--- IMPORTANTE: AGREGAR ESTO AL INICIO DEL ARCHIVO
+from modules.schedule_tool import TaskManager
+from modules.config_manager import ConfigManager
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QGraphicsView, QGraphicsScene, 
                              QGraphicsPixmapItem, QGraphicsRectItem, QVBoxLayout, QHBoxLayout, QPushButton, 
                              QWidget, QSystemTrayIcon, QMenu, QStyle, QLabel, QFrame, QGraphicsItem, QFileDialog)
@@ -10,43 +11,58 @@ from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QRectF, QEvent
 from PyQt6.QtGui import (QPixmap, QPainter, QColor, QAction, QPen, QCursor, 
                          QBrush, QTransform, QMouseEvent, QFont)
 
+
+def _load_ref_theme():
+    """Load theme for reference module."""
+    theme = ConfigManager.load_theme()
+    return theme
+
+
 # --- CONSTANTES DE CONFIGURACIÓN ---
 class Config:
-    # Colores
-    COLOR_ACCENT = "#00a8e8"
-    COLOR_BG_DARK = "rgba(20, 20, 25, 240)"
-    COLOR_GHOST = "rgba(20, 20, 25, 50)"
-    COLOR_WARN = "#d62828"
-    
-    # Geometría
     RESIZE_MARGIN = 10
     HANDLE_SIZE = 12
     HEADER_HEIGHT = 35
     MIN_WINDOW_SIZE = 200
 
-# --- ESTILOS CSS OPTIMIZADOS ---
-STYLESHEET = f"""
-QMainWindow {{ background: transparent; }}
-QWidget#Container {{ 
-    background-color: {Config.COLOR_BG_DARK}; 
-    border: 1px solid {Config.COLOR_ACCENT}; 
-    border-radius: 8px; 
-}}
-QLabel {{ 
-    color: {Config.COLOR_ACCENT}; 
-    font-family: 'Segoe UI', sans-serif; 
-    font-weight: bold; 
-}}
-QPushButton {{ 
-    background-color: rgba(0, 168, 232, 10); 
-    color: {Config.COLOR_ACCENT}; 
-    border: 1px solid {Config.COLOR_ACCENT}; 
-    padding: 5px; 
-    border-radius: 4px; 
-    font-weight: bold;
-}}
-QPushButton:hover {{ background-color: rgba(0, 168, 232, 50); color: white; }}
-"""
+    @staticmethod
+    def get_colors():
+        theme = _load_ref_theme()
+        return {
+            'accent': theme['accent'],
+            'bg_dark': theme['background'],
+            'text': theme['text'],
+            'secondary': theme['secondary'],
+            'border': theme.get('border', '#333333'),
+            'warn': '#d62828',
+        }
+
+
+def _build_stylesheet():
+    """Build stylesheet dynamically from theme."""
+    colors = Config.get_colors()
+    return f"""
+    QMainWindow {{ background: transparent; }}
+    QWidget#Container {{ 
+        background-color: {colors['bg_dark']}; 
+        border: 1px solid {colors['accent']}; 
+        border-radius: 8px; 
+    }}
+    QLabel {{ 
+        color: {colors['accent']}; 
+        font-family: 'Segoe UI', sans-serif; 
+        font-weight: bold; 
+    }}
+    QPushButton {{ 
+        background-color: {colors['secondary']}; 
+        color: {colors['accent']}; 
+        border: 1px solid {colors['accent']}; 
+        padding: 5px; 
+        border-radius: 4px; 
+        font-weight: bold;
+    }}
+    QPushButton:hover {{ background-color: {colors['accent']}33; color: white; }}
+    """
 
 # =============================================================================
 # CLASES GRÁFICAS (EL LIENZO Y LAS IMÁGENES)
@@ -55,18 +71,16 @@ QPushButton:hover {{ background-color: rgba(0, 168, 232, 50); color: white; }}
 class ResizeHandle(QGraphicsRectItem):
     """
     Componente visual que representa el agarre para redimensionar una imagen.
-    Sigue el patrón de 'Componente Hijo'.
     """
     def __init__(self, parent: 'ImageItem'):
-        # Inicializa un cuadrado en 0,0
         super().__init__(0, 0, Config.HANDLE_SIZE, Config.HANDLE_SIZE, parent)
         self.parent_item = parent
-        self.setBrush(QBrush(QColor(Config.COLOR_ACCENT)))
+        colors = Config.get_colors()
+        self.setBrush(QBrush(QColor(colors['accent'])))
         self.setPen(QPen(Qt.PenStyle.NoPen))
         self.setCursor(Qt.CursorShape.SizeFDiagCursor)
         self.setFlag(QGraphicsItem.GraphicsItemFlag.ItemIsSelectable, True)
         
-        # Estado interno para el arrastre
         self._start_pos: Optional[QPoint] = None
         self._start_scale: float = 1.0
 
@@ -132,14 +146,16 @@ class ImageItem(QGraphicsPixmapItem):
         """Sobrescribe el pintado para agregar indicadores visuales de selección."""
         super().paint(painter, option, widget)
         if self.isSelected():
-            painter.setPen(QPen(QColor(Config.COLOR_ACCENT), 2, Qt.PenStyle.DashLine))
+            colors = Config.get_colors()
+            painter.setPen(QPen(QColor(colors['accent']), 2, Qt.PenStyle.DashLine))
             painter.setBrush(Qt.BrushStyle.NoBrush)
             painter.drawRect(self.boundingRect())
 
     def contextMenuEvent(self, event) -> None:
         """Construye y ejecuta el menú contextual."""
         menu = QMenu()
-        menu.setStyleSheet(f"QMenu {{ background-color: #222; color: {Config.COLOR_ACCENT}; border: 1px solid {Config.COLOR_ACCENT}; }}")
+        colors = Config.get_colors()
+        menu.setStyleSheet(f"QMenu {{ background-color: #222; color: {colors['accent']}; border: 1px solid {colors['accent']}; }}")
         
         # Mapeo de acciones a métodos
         actions = [
@@ -258,7 +274,7 @@ class GhostControl(QWidget):
         
         layout = QVBoxLayout(self)
         btn = QPushButton("🔓 DESBLOQUEAR")
-        btn.setStyleSheet(f"background-color: {Config.COLOR_WARN}; color: white; border: 2px solid white; border-radius: 6px; font-weight: bold;")
+        btn.setStyleSheet("background-color: #d62828; color: white; border: 2px solid white; border-radius: 6px; font-weight: bold;")
         btn.clicked.connect(self.unlock_requested.emit)
         layout.addWidget(btn)
 
@@ -268,23 +284,22 @@ class TaskPopup(QWidget):
     """El menú desplegable flotante que muestra las tareas."""
     def __init__(self, parent=None):
         super().__init__(parent)
-        # Configuración de ventana flotante sin bordes (estilo Tooltip avanzado)
         self.setWindowFlags(Qt.WindowType.ToolTip | Qt.WindowType.FramelessWindowHint)
         self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
-        # Layout principal
+        colors = Config.get_colors()
+        
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         
-        # Contenedor con estilo
         self.container = QFrame()
-        self.container.setStyleSheet("""
-            QFrame {
-                background-color: rgba(20, 20, 25, 250);
-                border: 1px solid #00a8e8;
+        self.container.setStyleSheet(f"""
+            QFrame {{
+                background-color: {colors['bg_dark']};
+                border: 1px solid {colors['accent']};
                 border-radius: 6px;
-            }
-            QLabel { color: #e0e0e0; font-family: 'Segoe UI'; }
+            }}
+            QLabel {{ color: {colors['text']}; font-family: 'Segoe UI'; }}
         """)
         
         self.inner_layout = QVBoxLayout(self.container)
@@ -324,8 +339,9 @@ class TaskPopup(QWidget):
         
         # 1. Barra de Urgencia
         urgency = task.get("urgency", "BAJA")
-        colors = {"CRÍTICO": "#ff0000", "ALTA": "#ff9900", "MEDIA": "#ffff00", "BAJA": "#00a8e8"}
-        color = colors.get(urgency, "#888")
+        colors = Config.get_colors()
+        urgency_colors = {"CRÍTICO": "#ff0000", "ALTA": "#ff9900", "MEDIA": "#ffff00", "BAJA": colors['accent']}
+        color = urgency_colors.get(urgency, "#888")
         
         bar = QFrame()
         bar.setFixedSize(4, 25) # Barra vertical delgada
@@ -432,31 +448,28 @@ class TitleBar(QFrame):
     def __init__(self, parent=None):
         super().__init__(parent)
         self.setFixedHeight(Config.HEADER_HEIGHT)
-        self.setStyleSheet(f"background-color: rgba(0, 0, 0, 0.6); border-bottom: 1px solid {Config.COLOR_ACCENT};")
+        colors = Config.get_colors()
+        self.setStyleSheet(f"background-color: rgba(0, 0, 0, 0.6); border-bottom: 1px solid {colors['accent']};")
         
         layout = QHBoxLayout(self)
         layout.setContentsMargins(10, 0, 5, 0)
-        layout.setSpacing(10) # Espacio entre elementos
+        layout.setSpacing(10)
         
-        # 1. EL NUEVO RADAR DE TAREAS (Izquierda)
         self.radar = TaskRadar()
         
-        # 2. Título
         self.title = QLabel("AURA :: REFERENCE")
-        self.title.setStyleSheet(f"color: {Config.COLOR_ACCENT}; font-weight: bold; border: none; background: transparent;")
+        self.title.setStyleSheet(f"color: {colors['accent']}; font-weight: bold; border: none; background: transparent;")
         
-        # 3. Botones derechos
         self.btn_menu = QPushButton("MENU")
         self.btn_menu.setFixedSize(60, 20)
         self.btn_menu.clicked.connect(self.menu_requested.emit)
         
         self.btn_close = QPushButton("X")
         self.btn_close.setFixedSize(25, 25)
-        self.btn_close.setStyleSheet(f"color: {Config.COLOR_ACCENT}; border: none; font-size: 14px; background: transparent;")
+        self.btn_close.setStyleSheet(f"color: {colors['accent']}; border: none; font-size: 14px; background: transparent;")
         self.btn_close.clicked.connect(QApplication.instance().quit)
         
-        # AÑADIR AL LAYOUT
-        layout.addWidget(self.radar)  # <--- Aquí está el radar
+        layout.addWidget(self.radar)
         layout.addWidget(self.title)
         layout.addStretch()
         layout.addWidget(self.btn_menu)
@@ -533,7 +546,7 @@ class OverlayApp(QMainWindow):
         content_layout.addWidget(self.view)
         
         main_layout.addWidget(content_widget)
-        self.setStyleSheet(STYLESHEET)
+        self.setStyleSheet(_build_stylesheet())
 
     def _init_system_tray(self):
         """Inicializa el icono en la barra de tareas."""
