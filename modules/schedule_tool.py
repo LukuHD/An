@@ -15,11 +15,15 @@ TASKS_FILE = "tasks.json"
 # Importamos los componentes visuales
 from modules.ui_components import DraggableTitleBar, PulseButton
 from modules.config_manager import ConfigManager
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
 
 class TaskManager:
     @staticmethod
     def load_tasks():
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         if not os.path.exists(TASKS_FILE): return []
         try:
@@ -44,6 +48,8 @@ class TaskManager:
 
         # Solo nos importa la fecha más cercana
 =======
+=======
+>>>>>>> Stashed changes
         if not os.path.exists(TASKS_FILE):
             return []
         try:
@@ -64,6 +70,9 @@ class TaskManager:
         today = datetime.now().date()
         min_days = float('inf')
         found_any = False
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         for t in tasks:
             try:
@@ -76,6 +85,7 @@ class TaskManager:
                 if diff < min_days:
                     min_days = diff
                     found_any = True
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
             except:
                 continue
@@ -119,6 +129,8 @@ class TaskCard(QFrame):
 
     def __init__(self, task_data, parent=None):
 =======
+=======
+>>>>>>> Stashed changes
             except Exception:
                 continue
         if not found_any:
@@ -149,6 +161,9 @@ class TaskCard(QFrame):
     deleted = pyqtSignal()
 
     def __init__(self, task_data, theme, parent=None):
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         super().__init__(parent)
         self.setFixedHeight(90)
@@ -172,7 +187,10 @@ class TaskCard(QFrame):
         layout = QHBoxLayout(self)
         info_layout = QVBoxLayout()
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
         title = QLabel(task_data.get("title", "Misión"))
@@ -183,6 +201,12 @@ class TaskCard(QFrame):
         deadline = task_data.get("deadline")
         cat = task_data.get("category", "General")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
+=======
+        
+        deadline = task_data.get("deadline")
+        cat = task_data.get("category", "General")
+>>>>>>> Stashed changes
 =======
         
         deadline = task_data.get("deadline")
@@ -192,10 +216,13 @@ class TaskCard(QFrame):
             d_date = datetime.strptime(deadline, "%Y-%m-%d").date()
             days = (d_date - datetime.now().date()).days
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             
             # Texto descriptivo del tiempo
             if days == 0: 
 =======
+=======
+>>>>>>> Stashed changes
             if days == 0:
 >>>>>>> Stashed changes
                 time_str = "¡ES HOY!"
@@ -217,7 +244,10 @@ class TaskCard(QFrame):
         sub = QLabel(f"[{cat}] • {time_str}")
         sub.setStyleSheet(f"color: {time_color}; font-size: 11px; border: none; background: transparent;")
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
         info_layout.addWidget(title)
@@ -231,12 +261,15 @@ class TaskCard(QFrame):
         layout.addLayout(info_layout)
         layout.addStretch()
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         layout.addWidget(btn_done)
 
     def complete(self):
         self.deleted.emit()
 
 =======
+=======
+>>>>>>> Stashed changes
         layout.addWidget(self.btn_done)
         self.opacity_effect = QGraphicsOpacityEffect(self)
         self.setGraphicsEffect(self.opacity_effect)
@@ -359,6 +392,7 @@ class ScheduleApp(QMainWindow):
         btn_back.setFixedSize(100, 30)
         btn_back.clicked.connect(self.go_back)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         
         lbl_title = QLabel("CENTRO DE MANDO")
         lbl_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
@@ -369,11 +403,17 @@ class ScheduleApp(QMainWindow):
         lbl_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
         lbl_title.setStyleSheet(f"color: {self.theme['accent']};")
 >>>>>>> Stashed changes
+=======
+        lbl_title = QLabel("CENTRO DE MANDO")
+        lbl_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        lbl_title.setStyleSheet(f"color: {self.theme['accent']};")
+>>>>>>> Stashed changes
         header.addWidget(btn_back)
         header.addWidget(lbl_title)
         header.addStretch()
         self.layout.addLayout(header)
 
+<<<<<<< Updated upstream
 <<<<<<< Updated upstream
         # Creador
         creator_frame = QFrame()
@@ -396,6 +436,8 @@ class ScheduleApp(QMainWindow):
             self.cmb_urgency.setItemData(i, QColor(col), Qt.ItemDataRole.ForegroundRole)
 
 =======
+=======
+>>>>>>> Stashed changes
         creator_frame = QFrame()
         creator_frame.setStyleSheet(f"background-color: {self.theme['secondary']}; border-radius: 8px;")
         c_layout = QHBoxLayout(creator_frame)
@@ -407,17 +449,25 @@ class ScheduleApp(QMainWindow):
         self.cmb_urgency = QComboBox()
         self.cmb_urgency.addItems(["BAJA", "MEDIA", "ALTA", "CRÍTICO"])
         self.cmb_urgency.setFixedWidth(100)
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         self.inp_date = QDateEdit()
         self.inp_date.setDate(QDate.currentDate().addDays(1))
         self.inp_date.setCalendarPopup(True)
         self.inp_date.setFixedWidth(110)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         self.inp_date.setCursor(Qt.CursorShape.PointingHandCursor)
 
         btn_add = QPushButton("AGREGAR")
         btn_add.clicked.connect(self.add_task)
 
+=======
+        btn_add = QPushButton("AGREGAR")
+        btn_add.clicked.connect(self.add_task)
+>>>>>>> Stashed changes
 =======
         btn_add = QPushButton("AGREGAR")
         btn_add.clicked.connect(self.add_task)
@@ -431,7 +481,10 @@ class ScheduleApp(QMainWindow):
         self.layout.addWidget(creator_frame)
 
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         # Lista
+=======
+>>>>>>> Stashed changes
 =======
 >>>>>>> Stashed changes
         self.scroll = QScrollArea()
@@ -443,6 +496,7 @@ class ScheduleApp(QMainWindow):
         self.t_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
         self.scroll.setWidget(self.container)
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
         
         self.layout.addWidget(self.scroll)
         self.refresh()
@@ -450,6 +504,8 @@ class ScheduleApp(QMainWindow):
     def add_task(self):
         if not self.inp_title.text(): return
 =======
+=======
+>>>>>>> Stashed changes
         self.content_layout.addWidget(self.scroll)
         self.main_layout.addWidget(self.content_widget)
         
@@ -458,6 +514,9 @@ class ScheduleApp(QMainWindow):
     def add_task(self):
         if not self.inp_title.text():
             return
+<<<<<<< Updated upstream
+>>>>>>> Stashed changes
+=======
 >>>>>>> Stashed changes
         new_t = {
             "title": self.inp_title.text(),
@@ -479,6 +538,7 @@ class ScheduleApp(QMainWindow):
     def refresh(self):
         for i in reversed(range(self.t_layout.count())):
 <<<<<<< Updated upstream
+<<<<<<< Updated upstream
             self.t_layout.itemAt(i).widget().setParent(None)
             
         # Ordenar estrictamente por fecha de entrega
@@ -489,6 +549,8 @@ class ScheduleApp(QMainWindow):
             card.deleted.connect(lambda val=t: self.remove_task(val))
             self.t_layout.addWidget(card)
 =======
+=======
+>>>>>>> Stashed changes
             widget = self.t_layout.itemAt(i).widget()
             if widget:
                 widget.setParent(None)
