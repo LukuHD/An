@@ -77,13 +77,16 @@ class MainDashboard(QMainWindow):
 
     def apply_theme(self):
         """Aplica los colores del tema actual al Main."""
+        bg_style = f"background-color: {self.theme['background']};"
+        if self.theme.get('use_background') and self.theme.get('background_image'):
+            bg_path = self.theme['background_image'].replace('\\', '/')
+            bg_style = f"background-image: url('{bg_path}'); background-repeat: no-repeat; background-position: center; background-size: cover;"
+
+        border_color = self.theme.get('border', '#333')
         self.setStyleSheet(f"""
-            QMainWindow {{ background-color: {self.theme['background']}; border: 1px solid #333; }}
+            QMainWindow {{ {bg_style} border: 1px solid {border_color}; }}
             QLabel {{ color: {self.theme['text']}; font-family: 'Segoe UI'; }}
         """)
-        # Nota: Los PulseButton se actualizan solos al reiniciarse la app, 
-        # pero para cambio en vivo necesitaríamos regenerarlos. 
-        # Por ahora, reiniciar la app es la forma segura.
 
     def check_urgency_status(self):
         tasks = TaskManager.load_tasks()
