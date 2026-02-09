@@ -17,10 +17,14 @@ class MainDashboard(QMainWindow):
         super().__init__()
         self.resize(700, 480)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         # Cargar Tema
         self.theme = ConfigManager.load_theme()
+        
+        # Solo hacer el fondo translúcido si NO usamos imagen de fondo
+        if not (self.theme.get('use_background') and self.theme.get('background_image')):
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
         self.apply_theme() # Método para pintar
 
         self.central = QWidget()
