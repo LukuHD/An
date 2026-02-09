@@ -2,12 +2,13 @@ import sys
 import json
 import os
 from datetime import datetime
-
 from PyQt6.QtWidgets import (QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, 
                              QHBoxLayout, QLineEdit, QDateEdit, QComboBox, QScrollArea, 
-                             QFrame)
-from PyQt6.QtCore import Qt, pyqtSignal, QDate, QSize
+                             QFrame, QGraphicsOpacityEffect)
+from PyQt6.QtCore import Qt, pyqtSignal, QDate, QSize, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
 from PyQt6.QtGui import QFont, QColor, QCursor
+from modules.ui_components import DraggableTitleBar, PulseButton
+from modules.config_manager import ConfigManager # Importar Gestor
 
 TASKS_FILE = "tasks.json"
 
@@ -15,259 +16,163 @@ class TaskManager:
     @staticmethod
     def load_tasks():
         if not os.path.exists(TASKS_FILE): return []
-        try:
-            with open(TASKS_FILE, 'r') as f: return json.load(f)
+        try: with open(TASKS_FILE, 'r') as f: return json.load(f)
         except: return []
-
     @staticmethod
     def save_tasks(tasks):
         with open(TASKS_FILE, 'w') as f: json.dump(tasks, f, indent=4)
-    
     @staticmethod
     def get_smart_priority_color(tasks):
-        """
-        LÓGICA BASADA 100% EN TIEMPO (Solicitado por usuario).
-        La etiqueta 'Urgencia' es solo informativa, no cambia el color del radar.
-        """
         if not tasks: return None
-        
-        today = datetime.now().date()
-        min_days = 9999 
-        found_any = False
-
-        # Solo nos importa la fecha más cercana
+        today = datetime.now().date(); min_days = 9999; found_any = False
         for t in tasks:
             try:
                 deadline_str = t.get('deadline')
                 if not deadline_str: continue
-                
                 d = datetime.strptime(deadline_str, "%Y-%m-%d").date()
                 diff = (d - today).days
-                
-                if diff < min_days:
-                    min_days = diff
-                    found_any = True
-            except:
-                continue
-
-        if not found_any: return None # No hay fechas válidas
-
-        # --- REGLAS DE TIEMPO ESTRICTAS ---
-        # 1. PÁNICO (Vencido)
-        if min_days < 0: return "#ff0000"     # Rojo Neón
-        
-        # 2. URGENCIA REAL (Hoy)
-        if min_days == 0: return "#ff4500"    # Naranja Rojizo
-        
-        # 3. PRECAUCIÓN (Mañana o pasado)
-        if min_days <= 2: return "#ffcc00"    # Amarillo
-        
-        # 4. ATENCIÓN (Esta semana)
-        if min_days <= 7: return "#00a8e8"    # Azul
-        
-        # 5. RELAX (Futuro lejano)
-        return "#00ff7f"                      # Verde Primavera
-
-# --- ESTILOS VISUALES ---
-STYLES = """
-QMainWindow { background-color: #121212; }
-QLabel { color: #e0e0e0; font-family: 'Segoe UI'; }
-QLineEdit, QComboBox, QDateEdit {
-    background-color: #1e1e24; color: #fff; border: 1px solid #444; 
-    padding: 8px; border-radius: 4px; font-family: 'Segoe UI';
-}
-QPushButton {
-    background-color: #1e1e24; color: #00a8e8; border: 1px solid #00a8e8;
-    padding: 8px; border-radius: 4px; font-weight: bold;
-    qproperty-cursor: pointingHandCursor;
-}
-QPushButton:hover { background-color: rgba(0, 168, 232, 20); border: 1px solid #fff; }
-"""
+                if diff < min_days: min_days = diff; found_any = True
+            except: continue
+        if not found_any: return None
+        if min_days < 0: return "#ff0000"
+        if min_days == 0: return "#ff4500"
+        if min_days <= 2: return "#ffcc00"
+        if min_days <= 7: return "#00a8e8"
+        return "#00ff7f"
 
 class TaskCard(QFrame):
     deleted = pyqtSignal() 
-
-    def __init__(self, task_data, parent=None):
+    def __init__(self, task_data, theme, parent=None):
         super().__init__(parent)
-        self.setFixedHeight(90)
-        self.setCursor(Qt.CursorShape.ArrowCursor)
+        self.setFixedHeight(0)
+        self.target_height = 90
         
-        # El borde de la tarjeta SÍ respeta la categoría/urgencia que ella eligió
-        # para que visualmente distinga qué tipo de tarea es, 
-        # PERO el radar y el main solo miran el tiempo.
         urgency = task_data.get("urgency", "BAJA")
-        colors = {"CRÍTICO": "#ff0000", "ALTA": "#ff9900", "MEDIA": "#ffff00", "BAJA": "#00a8e8"}
-        border_color = colors.get(urgency, "#00a8e8")
+        colors = {"CRÍTICO": "#ff0000", "ALTA": "#ff9900", "MEDIA": "#ffff00", "BAJA": theme['accent']}
+        self.border_color = colors.get(urgency, theme['accent'])
 
+        # ESTILO DINÁMICO DE TARJETA
         self.setStyleSheet(f"""
             QFrame {{
-                background-color: #1a1a20; border-radius: 10px;
-                border-left: 6px solid {border_color};
+                background-color: {theme['secondary']}; border-radius: 10px;
+                border-left: 6px solid {self.border_color};
             }}
-            QFrame:hover {{ background-color: #252530; }}
+            QFrame:hover {{ background-color: {theme['accent']}22; }}
         """)
 
-        layout = QHBoxLayout(self)
-        info_layout = QVBoxLayout()
-        
+        layout = QHBoxLayout(self); info_layout = QVBoxLayout()
         title = QLabel(task_data.get("title", "Misión"))
         title.setFont(QFont("Segoe UI", 12, QFont.Weight.Bold))
-        title.setStyleSheet("border: none; background: transparent;")
+        title.setStyleSheet(f"border: none; background: transparent; color: {theme['text']};")
         
-        # Lógica de tiempo para el texto
-        deadline = task_data.get("deadline")
-        cat = task_data.get("category", "General")
+        deadline = task_data.get("deadline"); cat = task_data.get("category", "General")
         try:
             d_date = datetime.strptime(deadline, "%Y-%m-%d").date()
             days = (d_date - datetime.now().date()).days
-            
-            # Texto descriptivo del tiempo
-            if days == 0: 
-                time_str = "¡ES HOY!"
-                time_color = "#ff4500" # Naranja fuerte
-            elif days < 0: 
-                time_str = f"VENCIDO hace {abs(days)} días"
-                time_color = "#ff0000" # Rojo
-            elif days <= 2:
-                time_str = f"Quedan {days} días"
-                time_color = "#ffcc00" # Amarillo
-            else: 
-                time_str = f"Faltan {days} días"
-                time_color = "#00ff7f" # Verde
-
-        except:
-            time_str = "Sin fecha"
-            time_color = "#888"
+            if days == 0: time_str = "¡ES HOY!"; time_color = "#ff4500"
+            elif days < 0: time_str = f"VENCIDO hace {abs(days)} días"; time_color = "#ff0000"
+            elif days <= 2: time_str = f"Quedan {days} días"; time_color = "#ffcc00"
+            else: time_str = f"Faltan {days} días"; time_color = "#00ff7f"
+        except: time_str = "Sin fecha"; time_color = "#888"
 
         sub = QLabel(f"[{cat}] • {time_str}")
         sub.setStyleSheet(f"color: {time_color}; font-size: 11px; border: none; background: transparent;")
+        info_layout.addWidget(title); info_layout.addWidget(sub)
         
-        info_layout.addWidget(title)
-        info_layout.addWidget(sub)
-        
-        btn_done = QPushButton("✔")
-        btn_done.setFixedSize(40, 30)
-        btn_done.setStyleSheet(f"border: 1px solid {border_color}; color: {border_color};")
-        btn_done.clicked.connect(self.complete)
+        self.btn_done = QPushButton("✔")
+        self.btn_done.setFixedSize(40, 30)
+        self.btn_done.setCursor(Qt.CursorShape.PointingHandCursor)
+        self.btn_done.setStyleSheet(f"border: 1px solid {self.border_color}; color: {self.border_color}; background: transparent;")
+        self.btn_done.clicked.connect(self.animate_completion)
 
-        layout.addLayout(info_layout)
-        layout.addStretch()
-        layout.addWidget(btn_done)
+        layout.addLayout(info_layout); layout.addStretch(); layout.addWidget(self.btn_done)
+        self.opacity_effect = QGraphicsOpacityEffect(self); self.setGraphicsEffect(self.opacity_effect); self.opacity_effect.setOpacity(0) 
 
-    def complete(self):
-        self.deleted.emit()
+    def animate_entry(self):
+        self.group = QParallelAnimationGroup(self)
+        anim_height = QPropertyAnimation(self, b"maximumHeight"); anim_height.setDuration(400); anim_height.setStartValue(0); anim_height.setEndValue(self.target_height); anim_height.setEasingCurve(QEasingCurve.Type.OutBack)
+        anim_fade = QPropertyAnimation(self.opacity_effect, b"opacity"); anim_fade.setDuration(400); anim_fade.setStartValue(0); anim_fade.setEndValue(1)
+        self.group.addAnimation(anim_height); self.group.addAnimation(anim_fade); self.group.start(); self.setMinimumHeight(0) 
+
+    def animate_completion(self):
+        self.setStyleSheet(f"QFrame {{ background-color: rgba(0, 255, 127, 0.2); border-radius: 10px; border-left: 6px solid #00ff7f; }}")
+        self.btn_done.hide()
+        self.group_exit = QParallelAnimationGroup(self)
+        anim_shrink = QPropertyAnimation(self, b"maximumHeight"); anim_shrink.setDuration(300); anim_shrink.setStartValue(self.target_height); anim_shrink.setEndValue(0); anim_shrink.setEasingCurve(QEasingCurve.Type.InBack)
+        anim_fade = QPropertyAnimation(self.opacity_effect, b"opacity"); anim_fade.setDuration(300); anim_fade.setStartValue(1); anim_fade.setEndValue(0)
+        self.group_exit.addAnimation(anim_shrink); self.group_exit.addAnimation(anim_fade); self.group_exit.finished.connect(self.deleted.emit); self.group_exit.start()
 
 class ScheduleApp(QMainWindow):
     return_to_main = pyqtSignal()
-
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Aura :: Misiones")
         self.resize(800, 600)
-        self.setStyleSheet(STYLES)
+        self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
+        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        # CARGAR TEMA Y APLICAR GLOBALMENTE
+        self.theme = ConfigManager.load_theme()
+        self.setStyleSheet(f"""
+            QMainWindow {{ background-color: {self.theme['background']}; border: 1px solid #333; }}
+            QLabel {{ color: {self.theme['text']}; font-family: 'Segoe UI'; }}
+            QLineEdit, QComboBox, QDateEdit {{
+                background-color: {self.theme['secondary']}; color: {self.theme['text']}; 
+                border: 1px solid #444; padding: 8px; border-radius: 4px; font-family: 'Segoe UI';
+            }}
+            /* Estilo para los botones nativos (Agregar) */
+            QPushButton {{
+                background-color: {self.theme['secondary']}; color: {self.theme['accent']};
+                border: 1px solid {self.theme['accent']}; padding: 8px; border-radius: 4px; font-weight: bold;
+            }}
+            QPushButton:hover {{ background-color: {self.theme['accent']}22; }}
+        """)
+        
         self.tasks = TaskManager.load_tasks()
+        self.central = QWidget(); self.setCentralWidget(self.central)
+        self.main_layout = QVBoxLayout(self.central); self.main_layout.setContentsMargins(0,0,0,0); self.main_layout.setSpacing(0)
+        
+        self.title_bar = DraggableTitleBar(self, "AURA :: MISIONES")
+        self.main_layout.addWidget(self.title_bar)
 
-        main_widget = QWidget()
-        self.setCentralWidget(main_widget)
-        self.layout = QVBoxLayout(main_widget)
-        self.layout.setContentsMargins(20,20,20,20)
-
-        # Header
+        self.content_widget = QWidget(); self.content_layout = QVBoxLayout(self.content_widget); self.content_layout.setContentsMargins(20,20,20,20)
+        
         header = QHBoxLayout()
-        btn_back = QPushButton("<< VOLVER")
-        btn_back.setFixedSize(100, 30)
-        btn_back.clicked.connect(self.go_back)
-        
-        lbl_title = QLabel("CENTRO DE MANDO")
-        lbl_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
-        lbl_title.setStyleSheet("color: #e0e0e0; margin-left: 10px;")
-        
-        header.addWidget(btn_back)
-        header.addWidget(lbl_title)
-        header.addStretch()
-        self.layout.addLayout(header)
+        btn_back = PulseButton("<< VOLVER"); btn_back.setFixedSize(100, 40); btn_back.clicked.connect(self.go_back)
+        lbl_title = QLabel("CENTRO DE MANDO"); lbl_title.setFont(QFont("Segoe UI", 16, QFont.Weight.Bold))
+        header.addWidget(btn_back); header.addWidget(lbl_title); header.addStretch()
+        self.content_layout.addLayout(header)
 
-        # Creador
-        creator_frame = QFrame()
-        creator_frame.setStyleSheet("background-color: #2a2a35; border-radius: 8px;")
+        creator_frame = QFrame(); creator_frame.setStyleSheet(f"background-color: {self.theme['secondary']}; border-radius: 8px;")
         c_layout = QHBoxLayout(creator_frame)
-        
-        self.inp_title = QLineEdit()
-        self.inp_title.setPlaceholderText("Nueva Misión...")
-        
-        self.inp_cat = QLineEdit()
-        self.inp_cat.setPlaceholderText("Categoría")
-        self.inp_cat.setFixedWidth(150)
-        
-        self.cmb_urgency = QComboBox()
-        self.cmb_urgency.addItems(["BAJA", "MEDIA", "ALTA", "CRÍTICO"])
-        self.cmb_urgency.setFixedWidth(100)
-        
-        # Colores visuales en el combo (solo estética)
-        for i, col in enumerate(["#00a8e8", "#ffff00", "#ff9900", "#ff0000"]):
-            self.cmb_urgency.setItemData(i, QColor(col), Qt.ItemDataRole.ForegroundRole)
+        self.inp_title = QLineEdit(); self.inp_title.setPlaceholderText("Nueva Misión...")
+        self.inp_cat = QLineEdit(); self.inp_cat.setPlaceholderText("Categoría"); self.inp_cat.setFixedWidth(150)
+        self.cmb_urgency = QComboBox(); self.cmb_urgency.addItems(["BAJA", "MEDIA", "ALTA", "CRÍTICO"]); self.cmb_urgency.setFixedWidth(100)
+        self.inp_date = QDateEdit(); self.inp_date.setDate(QDate.currentDate().addDays(1)); self.inp_date.setCalendarPopup(True); self.inp_date.setFixedWidth(110)
+        btn_add = QPushButton("AGREGAR"); btn_add.clicked.connect(self.add_task)
+        c_layout.addWidget(self.inp_title, 2); c_layout.addWidget(self.inp_cat, 1); c_layout.addWidget(self.cmb_urgency); c_layout.addWidget(self.inp_date); c_layout.addWidget(btn_add)
+        self.content_layout.addWidget(creator_frame)
 
-        self.inp_date = QDateEdit()
-        self.inp_date.setDate(QDate.currentDate().addDays(1))
-        self.inp_date.setCalendarPopup(True)
-        self.inp_date.setFixedWidth(110)
-        self.inp_date.setCursor(Qt.CursorShape.PointingHandCursor)
-
-        btn_add = QPushButton("AGREGAR")
-        btn_add.clicked.connect(self.add_task)
-
-        c_layout.addWidget(self.inp_title, 2)
-        c_layout.addWidget(self.inp_cat, 1)
-        c_layout.addWidget(self.cmb_urgency)
-        c_layout.addWidget(self.inp_date)
-        c_layout.addWidget(btn_add)
-        
-        self.layout.addWidget(creator_frame)
-
-        # Lista
-        self.scroll = QScrollArea()
-        self.scroll.setWidgetResizable(True)
-        self.scroll.setStyleSheet("background: transparent; border: none;")
-        self.container = QWidget()
-        self.container.setStyleSheet("background: transparent;")
-        self.t_layout = QVBoxLayout(self.container)
-        self.t_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
-        self.scroll.setWidget(self.container)
-        
-        self.layout.addWidget(self.scroll)
-        self.refresh()
+        self.scroll = QScrollArea(); self.scroll.setWidgetResizable(True); self.scroll.setStyleSheet("background: transparent; border: none;")
+        self.container = QWidget(); self.container.setStyleSheet("background: transparent;"); self.t_layout = QVBoxLayout(self.container); self.t_layout.setAlignment(Qt.AlignmentFlag.AlignTop)
+        self.scroll.setWidget(self.container); self.content_layout.addWidget(self.scroll)
+        self.main_layout.addWidget(self.content_widget)
+        self.refresh(animate=False)
 
     def add_task(self):
         if not self.inp_title.text(): return
-        new_t = {
-            "title": self.inp_title.text(),
-            "category": self.inp_cat.text() or "General",
-            "urgency": self.cmb_urgency.currentText(),
-            "deadline": self.inp_date.date().toString("yyyy-MM-dd")
-        }
-        self.tasks.append(new_t)
-        TaskManager.save_tasks(self.tasks)
-        self.inp_title.clear()
-        self.refresh()
-
+        new_t = { "title": self.inp_title.text(), "category": self.inp_cat.text() or "General", "urgency": self.cmb_urgency.currentText(), "deadline": self.inp_date.date().toString("yyyy-MM-dd") }
+        self.tasks.append(new_t); TaskManager.save_tasks(self.tasks); self.inp_title.clear(); self.add_single_card(new_t, animate=True)
     def remove_task(self, task):
-        if task in self.tasks:
-            self.tasks.remove(task)
-            TaskManager.save_tasks(self.tasks)
-            self.refresh()
-
-    def refresh(self):
-        for i in reversed(range(self.t_layout.count())):
-            self.t_layout.itemAt(i).widget().setParent(None)
-            
-        # Ordenar estrictamente por fecha de entrega
+        if task in self.tasks: self.tasks.remove(task); TaskManager.save_tasks(self.tasks)
+    def refresh(self, animate=False):
+        for i in reversed(range(self.t_layout.count())): self.t_layout.itemAt(i).widget().setParent(None)
         sorted_tasks = sorted(self.tasks, key=lambda x: x['deadline'])
-
-        for t in sorted_tasks:
-            card = TaskCard(t)
-            card.deleted.connect(lambda val=t: self.remove_task(val))
-            self.t_layout.addWidget(card)
-
-    def go_back(self):
-        self.hide()
-        self.return_to_main.emit()
+        for t in sorted_tasks: self.add_single_card(t, animate=animate)
+    def add_single_card(self, t, animate=False):
+        # Pasamos el TEMA a la tarjeta
+        card = TaskCard(t, self.theme)
+        card.deleted.connect(lambda val=t: self.remove_task(val))
+        self.t_layout.addWidget(card)
+        if animate: card.animate_entry()
+        else: card.setFixedHeight(90); card.opacity_effect.setOpacity(1)
+    def go_back(self): self.hide(); self.return_to_main.emit()
