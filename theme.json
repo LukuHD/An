@@ -2,5 +2,11 @@
     "accent": "#e83d26",
     "background": "#020712",
     "text": "#e0e0e0",
-    "secondary": "#1e1e24"
+    "secondary": "#1e1e24",
+    "border": "#333333",
+    "title_bar": "#0a0a0f",
+    "card_text": "#ffffff",
+    "highlight": "#00ff7f",
+    "use_background": false,
+    "background_image": ""
 }
