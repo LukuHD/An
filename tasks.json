@@ -1,14 +1,38 @@
 [
     {
+<<<<<<< Updated upstream
         "title": "hab",
         "category": "no bu",
+=======
+        "title": "Tar",
+        "category": "ff",
+        "urgency": "MEDIA",
+        "deadline": "2026-02-10"
+    },
+    {
+        "title": "zz",
+        "category": "ff",
+>>>>>>> Stashed changes
         "urgency": "MEDIA",
         "deadline": "2026-02-12"
     },
     {
+<<<<<<< Updated upstream
         "title": "puedo",
         "category": "no bu",
         "urgency": "MEDIA",
         "deadline": "2026-02-15"
+=======
+        "title": "vvv",
+        "category": "ff",
+        "urgency": "CR\u00cdTICO",
+        "deadline": "2026-02-16"
+    },
+    {
+        "title": "aaa",
+        "category": "ff",
+        "urgency": "BAJA",
+        "deadline": "2026-02-09"
+>>>>>>> Stashed changes
     }
 ]
