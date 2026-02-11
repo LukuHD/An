@@ -7,7 +7,7 @@ from modules.config_manager import ConfigManager
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QGraphicsView, QGraphicsScene, 
                              QGraphicsPixmapItem, QGraphicsRectItem, QVBoxLayout, QHBoxLayout, 
                              QPushButton, QWidget, QSystemTrayIcon, QMenu, QStyle, QLabel, 
-                             QFrame, QGraphicsItem, QFileDialog, QSlider, QComboBox)
+                             QFrame, QGraphicsItem, QFileDialog)
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QRectF, QEvent
 from PyQt6.QtGui import (QPixmap, QPainter, QColor, QAction, QPen, QCursor, 
                          QBrush, QTransform, QMouseEvent, QFont)
@@ -458,7 +458,7 @@ class TitleBar(QFrame):
         
         self.radar = TaskRadar()
         
-        self.title = QLabel("AURA :: REFERENCE")
+        self.title = QLabel("ANYA :: REFERENCE")
         self.title.setStyleSheet(f"color: {colors['accent']}; font-weight: bold; border: none; background: transparent;")
         
         self.btn_menu = QPushButton("MENU")
@@ -489,7 +489,7 @@ class ReferenceFrame(QMainWindow):
 
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("Aura Reference Tool")
+        self.setWindowTitle("Anya Reference Tool")
         self.resize(500, 600)
         
         # Configuración de ventana sin bordes
@@ -533,29 +533,15 @@ class ReferenceFrame(QMainWindow):
         controls = QHBoxLayout()
         btn_load = QPushButton("CARGAR"); btn_load.clicked.connect(self.load_session)
         btn_save = QPushButton("GUARDAR"); btn_save.clicked.connect(self.save_session)
-        
-        controls = QHBoxLayout()
-        
-        # 1. CREAR el selector (Esto soluciona el AttributeError)
-        self.ghost_mode_select = QComboBox()
-        self.ghost_mode_select.addItems(["Ventana Completa", "Solo la última", "Todas las imágenes"])
-        self.ghost_mode_select.setFixedWidth(150)
-        
-        # 2. CREAR los botones
-        btn_load = QPushButton("GUARDAR"); btn_save.clicked.connect(self.save_session)      
-        btn_load = QPushButton("CARGAR"); btn_load.clicked.connect(self.load_session)
         btn_new_layer = QPushButton("＋ NUEVA CAPA")
-        btn_new_layer.clicked.connect(self.spawn_new_layer) # Lógica de capas
+        btn_new_layer.clicked.connect(self.spawn_new_layer)
         
         self.btn_ghost = QPushButton("MODO FANTASMA")
         self.btn_ghost.clicked.connect(self.toggle_ghost_mode)
         
-        # 3. AHORA SÍ agregarlos al layout (en orden)
         controls.addWidget(btn_save)
         controls.addWidget(btn_load)
         controls.addWidget(btn_new_layer)
-        controls.addWidget(QLabel("Modo:"))
-        controls.addWidget(self.ghost_mode_select) # Ahora ya existe el atributo
         controls.addWidget(self.btn_ghost)
         
         # Scene & View
@@ -601,44 +587,27 @@ class ReferenceFrame(QMainWindow):
 
     # --- LÓGICA DE MODO FANTASMA ---
     def toggle_ghost_mode(self):
+        """Toggle single ghost mode - makes entire window transparent and click-through."""
         self.is_ghost_mode = not self.is_ghost_mode
-        
-        # Obtener la opción elegida en el menú
-        selected_mode = self.ghost_mode_select.currentText()
-        
-        # Obtener imágenes y ordenarlas por orden de creación (última al final)
-        all_items = [item for item in self.scene.items() if isinstance(item, ImageItem)]
-        all_items.reverse() 
 
         if self.is_ghost_mode:
             self.btn_ghost.setText("DESACTIVAR FANTASMA")
             
-            # 1. Aplicar opacidad según la elección
-            if selected_mode == "Solo la última" and all_items:
-                all_items[-1].setOpacity(0.3)
-            elif selected_mode == "Todas las imágenes":
-                for item in all_items: item.setOpacity(0.3)
+            # Apply full window transparency
+            self.setWindowOpacity(0.3)
             
-            # 2. Configuración de Ventana (Click-through y Opacidad general)
-            # Si el modo es "Ventana Completa", bajamos la opacidad de todo
-            if selected_mode == "Ventana Completa":
-                self.setWindowOpacity(0.3)
-            else:
-                self.setWindowOpacity(0.95) # Mantenemos la ventana visible pero los items fantasmas
-
+            # Hide and reshow with click-through flag
             self.hide()
             self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowTransparentForInput)
             self.show()
             
-            # Mostrar botón de auxilio
+            # Show unlock control button
             geo = self.geometry()
             self.ghost_ctrl.move(geo.x() + (geo.width() // 2) - 80, geo.y() + 10)
             self.ghost_ctrl.show()
         else:
-            # RESETEAR TODO
+            # Reset to normal mode
             self.btn_ghost.setText("ACTIVAR MODO FANTASMA")
-            for item in all_items:
-                item.setOpacity(1.0)
             
             self.setWindowOpacity(0.95)
             self.hide()
@@ -729,7 +698,7 @@ class ReferenceFrame(QMainWindow):
 
     # --- PERSISTENCIA (GUARDAR / CARGAR) ---
     def save_session(self):
-        path, _ = QFileDialog.getSaveFileName(self, "Guardar Sesión", "", "Aura Files (*.json)")
+        path, _ = QFileDialog.getSaveFileName(self, "Guardar Sesión", "", "Anya Files (*.json)")
         if not path: return
         
         data = {
@@ -741,7 +710,7 @@ class ReferenceFrame(QMainWindow):
         except Exception as e: print(f"Error guardando: {e}")
 
     def load_session(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Cargar Sesión", "", "Aura Files (*.json)")
+        path, _ = QFileDialog.getOpenFileName(self, "Cargar Sesión", "", "Anya Files (*.json)")
         if not path: return
         
         try:

@@ -82,7 +82,7 @@ class SettingsApp(QMainWindow):
             QLabel {{ color: {self.theme['text']}; font-family: 'Segoe UI'; }}
         """)
 
-        self.title_bar = DraggableTitleBar(self, "AURA :: CONFIGURACIÓN")
+        self.title_bar = DraggableTitleBar(self, "ANYA :: CONFIGURACIÓN")
         self.layout.addWidget(self.title_bar)
         
         # Scrollable content area
