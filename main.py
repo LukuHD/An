@@ -33,14 +33,14 @@ class MainDashboard(QMainWindow):
         self.main_layout.setContentsMargins(0, 0, 0, 0)
         self.main_layout.setSpacing(0)
 
-        self.title_bar = DraggableTitleBar(self, "AURA SUITE :: HUB")
+        self.title_bar = DraggableTitleBar(self, "ANYA :: HUB")
         self.main_layout.addWidget(self.title_bar)
 
         self.content_widget = QWidget()
         self.content_layout = QVBoxLayout(self.content_widget)
         self.content_layout.setContentsMargins(50, 20, 50, 40)
         
-        self.header = QLabel("AURA SUITE")
+        self.header = QLabel("ANYA")
         self.header.setFont(QFont("Segoe UI", 32, QFont.Weight.Bold))
         self.header.setAlignment(Qt.AlignmentFlag.AlignCenter)
         # El color del header también debe ser dinámico

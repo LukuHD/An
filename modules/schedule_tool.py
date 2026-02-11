@@ -252,7 +252,7 @@ class ScheduleApp(QMainWindow):
         self.main_layout.setSpacing(0)
         
         # Barra Personalizada
-        self.title_bar = DraggableTitleBar(self, "AURA :: MISIONES")
+        self.title_bar = DraggableTitleBar(self, "ANYA :: MISIONES")
         self.main_layout.addWidget(self.title_bar)
 
         # Contenido

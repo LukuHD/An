@@ -79,7 +79,7 @@ class PulseButton(QPushButton):
 
 
 class DraggableTitleBar(QFrame):
-    def __init__(self, parent=None, title_text="AURA SUITE"):
+    def __init__(self, parent=None, title_text="ANYA"):
         super().__init__(parent)
         self.parent_window = parent
         self.setFixedHeight(40)
