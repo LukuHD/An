@@ -6,7 +6,7 @@ from PyQt6.QtCore import Qt
 from PyQt6.QtGui import QFont
 
 # Tus módulos
-from modules.reference import OverlayApp
+from modules.reference import ReferenceFrame
 from modules.schedule_tool import ScheduleApp, TaskManager
 from modules.settings_tool import SettingsApp # <--- NUEVO
 from modules.ui_components import PulseButton, DraggableTitleBar, animate_window_open
@@ -17,10 +17,14 @@ class MainDashboard(QMainWindow):
         super().__init__()
         self.resize(700, 480)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         # Cargar Tema
         self.theme = ConfigManager.load_theme()
+        
+        # Solo hacer el fondo translúcido si NO usamos imagen de fondo
+        if not (self.theme.get('use_background') and self.theme.get('background_image')):
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
         self.apply_theme() # Método para pintar
 
         self.central = QWidget()
@@ -105,11 +109,17 @@ class MainDashboard(QMainWindow):
             self.btn_sch.setText("📅 HORARIOS\n(Todo limpio)")
 
     def open_ref(self):
-        if not self.ref_win:
-            self.ref_win = OverlayApp()
-            self.ref_win.return_to_main.connect(self.show_main_and_refresh)
-        self.hide()
-        animate_window_open(self.ref_win)
+        try:
+            if not self.ref_win:
+                # Usamos el nombre correcto de la clase
+                self.ref_win = ReferenceFrame() 
+                self.ref_win.return_to_main.connect(self.show_main_and_refresh)
+            
+            self.hide() # <-- Esto hace que el main se cierre
+            self.ref_win.show()
+            animate_window_open(self.ref_win)
+        except Exception as e:
+            print(f"Error crítico al abrir: {e}")
 
     def open_sch(self):
         if not self.sch_win:

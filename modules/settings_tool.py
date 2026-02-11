@@ -1,3 +1,4 @@
+import os
 from PyQt6.QtWidgets import (QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QLabel, 
                              QFrame, QColorDialog, QPushButton, QMessageBox, QCheckBox,
                              QFileDialog, QGridLayout, QScrollArea)
@@ -34,14 +35,43 @@ class ColorPickerBtn(QPushButton):
 class SettingsApp(QMainWindow):
     return_to_main = pyqtSignal(bool)
 
+    def apply_theme(self):
+        """Aplica los colores o la imagen de fondo al estilo de la ventana."""
+        self.theme = ConfigManager.load_theme()
+        
+        if self.theme.get('use_background') and self.theme.get('background_image'):
+            from PyQt6.QtGui import QPalette, QBrush, QPixmap
+            path = self.theme.get('background_image')
+            if os.path.exists(path):
+                palette = QPalette()
+                pixmap = QPixmap(path)
+                # Escalamos la imagen al tamaño de la ventana
+                scaled_pixmap = pixmap.scaled(self.size(), Qt.AspectRatioMode.KeepAspectRatioByExpanding, Qt.TransformationMode.SmoothTransformation)
+                palette.setBrush(QPalette.ColorRole.Window, QBrush(scaled_pixmap))
+                self.setPalette(palette)
+                self.setAutoFillBackground(True)
+        else:
+            # Si no hay imagen, usamos el color de fondo del tema
+            self.setStyleSheet(f"""
+                QMainWindow {{ 
+                    background-color: {self.theme.get('background', '#121212')}; 
+                    border: 1px solid {self.theme.get('accent', '#00a8e8')}; 
+                }}
+            """)
+
+
     def __init__(self):
         super().__init__()
         self.resize(550, 700)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         
         self.theme = ConfigManager.load_theme()
-        
+
+                # Solo hacer el fondo translúcido si NO usamos imagen de fondo
+        if not (self.theme.get('use_background') and self.theme.get('background_image')):
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        self.apply_theme() # Método para pintar
+
         self.central = QWidget()
         self.setCentralWidget(self.central)
         self.layout = QVBoxLayout(self.central)

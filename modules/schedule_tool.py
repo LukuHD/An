@@ -1,13 +1,14 @@
 import sys
 import json
 import os
+from modules.config_manager import ConfigManager
 from datetime import datetime
 
 from PyQt6.QtWidgets import (QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, 
                              QHBoxLayout, QLineEdit, QDateEdit, QComboBox, QScrollArea, 
                              QFrame, QGraphicsOpacityEffect)
 from PyQt6.QtCore import Qt, pyqtSignal, QDate, QSize, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
-from PyQt6.QtGui import QFont, QColor, QCursor
+from PyQt6.QtGui import QFont, QColor, QCursor, QPalette, QBrush, QPixmap
 
 # Importamos los componentes visuales
 from modules.ui_components import DraggableTitleBar, PulseButton
@@ -191,14 +192,58 @@ class TaskCard(QFrame):
 # --- APP PRINCIPAL DE HORARIOS ---
 class ScheduleApp(QMainWindow):
     return_to_main = pyqtSignal()
+    
+    def __init__(self):
+        super().__init__()
+        # ... (tu código existente)
+        self.apply_theme() # Esto es lo que causaba el error si el método no estaba
+        
+    def apply_theme(self):
+        """Carga el fondo (imagen o color) desde la configuración"""
+        from modules.config_manager import ConfigManager # Importación local para evitar errores
+        self.theme = ConfigManager.load_theme()
+        
+        # Si el usuario eligió usar una imagen de fondo
+        if self.theme.get('use_background') and self.theme.get('background_image'):
+            path = self.theme.get('background_image')
+            if os.path.exists(path):
+                palette = QPalette()
+                pixmap = QPixmap(path)
+                # Escalamos la imagen para que cubra toda la ventana
+                scaled_pixmap = pixmap.scaled(
+                    self.size(), 
+                    Qt.AspectRatioMode.KeepAspectRatioByExpanding, 
+                    Qt.TransformationMode.SmoothTransformation
+                )
+                palette.setBrush(QPalette.ColorRole.Window, QBrush(scaled_pixmap))
+                self.setPalette(palette)
+                self.setAutoFillBackground(True)
+        else:
+            # Si no hay imagen, aplicamos el color de fondo sólido
+            bg_color = self.theme.get('background', '#121212')
+            self.setStyleSheet(f"QMainWindow {{ background-color: {bg_color}; border: 1px solid #333; }}")
+
+    # ... el resto de tus funciones (add_task, remove_task, etc.)
+
+    def resizeEvent(self, event):
+        """Re-aplica el tema para que la imagen de fondo se ajuste al nuevo tamaño"""
+        self.apply_theme()
+        super().resizeEvent(event)
 
     def __init__(self):
         super().__init__()
         self.resize(800, 600)
         self.setWindowFlags(Qt.WindowType.FramelessWindowHint)
-        self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
         self.setStyleSheet(STYLES)
         self.tasks = TaskManager.load_tasks()
+        self.theme = ConfigManager.load_theme()
+
+
+        # Solo hacer el fondo translúcido si NO usamos imagen de fondo
+        if not (self.theme.get('use_background') and self.theme.get('background_image')):
+            self.setAttribute(Qt.WidgetAttribute.WA_TranslucentBackground)
+        
+        self.apply_theme() # Método para pintar
 
         self.central = QWidget()
         self.setCentralWidget(self.central)

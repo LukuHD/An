@@ -5,8 +5,9 @@ from typing import Optional, Dict, List, Any
 from modules.schedule_tool import TaskManager
 from modules.config_manager import ConfigManager
 from PyQt6.QtWidgets import (QApplication, QMainWindow, QGraphicsView, QGraphicsScene, 
-                             QGraphicsPixmapItem, QGraphicsRectItem, QVBoxLayout, QHBoxLayout, QPushButton, 
-                             QWidget, QSystemTrayIcon, QMenu, QStyle, QLabel, QFrame, QGraphicsItem, QFileDialog)
+                             QGraphicsPixmapItem, QGraphicsRectItem, QVBoxLayout, QHBoxLayout, 
+                             QPushButton, QWidget, QSystemTrayIcon, QMenu, QStyle, QLabel, 
+                             QFrame, QGraphicsItem, QFileDialog, QSlider, QComboBox)
 from PyQt6.QtCore import Qt, pyqtSignal, QPoint, QRectF, QEvent
 from PyQt6.QtGui import (QPixmap, QPainter, QColor, QAction, QPen, QCursor, 
                          QBrush, QTransform, QMouseEvent, QFont)
@@ -483,7 +484,7 @@ class TitleBar(QFrame):
 # VENTANA PRINCIPAL (LÓGICA DE SISTEMA)
 # =============================================================================
 
-class OverlayApp(QMainWindow):
+class ReferenceFrame(QMainWindow):
     return_to_main = pyqtSignal()
 
     def __init__(self):
@@ -532,11 +533,30 @@ class OverlayApp(QMainWindow):
         controls = QHBoxLayout()
         btn_load = QPushButton("CARGAR"); btn_load.clicked.connect(self.load_session)
         btn_save = QPushButton("GUARDAR"); btn_save.clicked.connect(self.save_session)
-        btn_ghost = QPushButton("MODO FANTASMA"); btn_ghost.clicked.connect(self.toggle_ghost_mode)
         
-        controls.addWidget(btn_load)
+        controls = QHBoxLayout()
+        
+        # 1. CREAR el selector (Esto soluciona el AttributeError)
+        self.ghost_mode_select = QComboBox()
+        self.ghost_mode_select.addItems(["Ventana Completa", "Solo la última", "Todas las imágenes"])
+        self.ghost_mode_select.setFixedWidth(150)
+        
+        # 2. CREAR los botones
+        btn_load = QPushButton("GUARDAR"); btn_save.clicked.connect(self.save_session)      
+        btn_load = QPushButton("CARGAR"); btn_load.clicked.connect(self.load_session)
+        btn_new_layer = QPushButton("＋ NUEVA CAPA")
+        btn_new_layer.clicked.connect(self.spawn_new_layer) # Lógica de capas
+        
+        self.btn_ghost = QPushButton("MODO FANTASMA")
+        self.btn_ghost.clicked.connect(self.toggle_ghost_mode)
+        
+        # 3. AHORA SÍ agregarlos al layout (en orden)
         controls.addWidget(btn_save)
-        controls.addWidget(btn_ghost)
+        controls.addWidget(btn_load)
+        controls.addWidget(btn_new_layer)
+        controls.addWidget(QLabel("Modo:"))
+        controls.addWidget(self.ghost_mode_select) # Ahora ya existe el atributo
+        controls.addWidget(self.btn_ghost)
         
         # Scene & View
         self.scene = QGraphicsScene()
@@ -547,6 +567,22 @@ class OverlayApp(QMainWindow):
         
         main_layout.addWidget(content_widget)
         self.setStyleSheet(_build_stylesheet())
+
+
+    def spawn_new_layer(self):
+        """Crea una ventana de referencia totalmente independiente."""
+        # Creamos una nueva instancia de la clase actual
+        new_layer = ReferenceFrame()
+        
+        # Importante: Para que Windows no la cierre, la guardamos en la aplicación
+        if not hasattr(QApplication.instance(), 'extra_layers'):
+            QApplication.instance().extra_layers = []
+        QApplication.instance().extra_layers.append(new_layer)
+        
+        # La movemos un poco para que no tape a la anterior
+        new_layer.move(self.x() + 50, self.y() + 50)
+        new_layer.show()
+
 
     def _init_system_tray(self):
         """Inicializa el icono en la barra de tareas."""
@@ -567,23 +603,51 @@ class OverlayApp(QMainWindow):
     def toggle_ghost_mode(self):
         self.is_ghost_mode = not self.is_ghost_mode
         
+        # Obtener la opción elegida en el menú
+        selected_mode = self.ghost_mode_select.currentText()
+        
+        # Obtener imágenes y ordenarlas por orden de creación (última al final)
+        all_items = [item for item in self.scene.items() if isinstance(item, ImageItem)]
+        all_items.reverse() 
+
         if self.is_ghost_mode:
-            self.setWindowOpacity(0.3)
-            # Truco para aplicar Click-Through
+            self.btn_ghost.setText("DESACTIVAR FANTASMA")
+            
+            # 1. Aplicar opacidad según la elección
+            if selected_mode == "Solo la última" and all_items:
+                all_items[-1].setOpacity(0.3)
+            elif selected_mode == "Todas las imágenes":
+                for item in all_items: item.setOpacity(0.3)
+            
+            # 2. Configuración de Ventana (Click-through y Opacidad general)
+            # Si el modo es "Ventana Completa", bajamos la opacidad de todo
+            if selected_mode == "Ventana Completa":
+                self.setWindowOpacity(0.3)
+            else:
+                self.setWindowOpacity(0.95) # Mantenemos la ventana visible pero los items fantasmas
+
             self.hide()
             self.setWindowFlags(self.windowFlags() | Qt.WindowType.WindowTransparentForInput)
             self.show()
             
-            # Posicionar satélite
+            # Mostrar botón de auxilio
             geo = self.geometry()
             self.ghost_ctrl.move(geo.x() + (geo.width() // 2) - 80, geo.y() + 10)
             self.ghost_ctrl.show()
         else:
+            # RESETEAR TODO
+            self.btn_ghost.setText("ACTIVAR MODO FANTASMA")
+            for item in all_items:
+                item.setOpacity(1.0)
+            
             self.setWindowOpacity(0.95)
             self.hide()
             self.setWindowFlags(self.windowFlags() & ~Qt.WindowType.WindowTransparentForInput)
             self.show()
             self.ghost_ctrl.hide()
+
+
+
 
     # --- LÓGICA DE REDIMENSIONAMIENTO (OPTIMIZADA) ---
     # Aquí eliminamos la "sopa de ifs" usando lógica de regiones
