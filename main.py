@@ -120,7 +120,6 @@ class MainDashboard(QMainWindow):
 
     def open_sch(self):
         if hasattr(self, 'mascot'):
-            self.mascot.is_reacting = True # Bloquea cambios aleatorios
             self.mascot.react_to_context("schedule")
             
         if not self.sch_win:

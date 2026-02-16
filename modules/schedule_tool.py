@@ -300,7 +300,7 @@ class ScheduleApp(QMainWindow):
         # Limpiamos el input después de agregar la tarjeta
         self.inp_title.clear()
         # Usamos QTimer para asegurar que el focus se establece después de cualquier evento de UI
-        QTimer.singleShot(0, lambda: self.inp_title.setFocus())
+        QTimer.singleShot(0, self.inp_title.setFocus)
 
     def remove_task(self, task):
         if task in self.tasks:
