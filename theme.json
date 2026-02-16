@@ -7,6 +7,6 @@
     "title_bar": "#080b1d",
     "card_text": "#ffffff",
     "highlight": "#00ff7f",
-    "use_background": false,
-    "background_image": ""
+    "use_background": true,
+    "background_image": "C:/Users/LukuH/OneDrive/Desktop/plin.png"
 }

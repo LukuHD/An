@@ -1,50 +1,14 @@
 [
     {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        "title": "hab",
-        "category": "no bu",
-=======
-=======
->>>>>>> Stashed changes
-        "title": "Tar",
-        "category": "ff",
-        "urgency": "MEDIA",
-        "deadline": "2026-02-10"
-    },
-    {
-        "title": "zz",
-        "category": "ff",
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
-        "urgency": "MEDIA",
-        "deadline": "2026-02-12"
-    },
-    {
-<<<<<<< Updated upstream
-<<<<<<< Updated upstream
-        "title": "puedo",
-        "category": "no bu",
-        "urgency": "MEDIA",
-        "deadline": "2026-02-15"
-=======
-=======
->>>>>>> Stashed changes
-        "title": "vvv",
-        "category": "ff",
+        "title": "fffff",
+        "category": "fff",
         "urgency": "CR\u00cdTICO",
-        "deadline": "2026-02-16"
+        "deadline": "2026-02-24"
     },
     {
-        "title": "aaa",
-        "category": "ff",
+        "title": "pr",
+        "category": "fffjasm",
         "urgency": "BAJA",
-        "deadline": "2026-02-09"
-<<<<<<< Updated upstream
->>>>>>> Stashed changes
-=======
->>>>>>> Stashed changes
+        "deadline": "2026-02-17"
     }
 ]
