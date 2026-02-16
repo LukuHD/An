@@ -7,6 +7,10 @@ from PyQt6.QtGui import QPixmap, QGuiApplication, QTransform
 from modules.schedule_tool import TaskManager
 
 class RafayelMascot(QWidget):
+    # Constants
+    BEHAVIOR_TIMER_INTERVAL = 10000  # Time in ms between behavior changes
+    TASK_REACTION_DURATION = 8000    # Time in ms to maintain task completion emotion
+    
     def __init__(self):
         super().__init__()
         
@@ -73,10 +77,59 @@ class RafayelMascot(QWidget):
 
         # --- BANCO DE DIÁLOGOS (300 INTERACCIONES) ---
         self.dialogues = {
-            "idle": ["¿Y ahora qué?", "Observo... juzgo...", "Mmh.", "El mar me llama."],
-            "walk": ["Estirando las piernas.", "Buscando un mejor ángulo.", "Caminando por aquí."],
-            "sleep": ["Zzz...", "No hagas ruido.", "Soñando con Lemuria."],
-            "angry": ["¡No me ignores!", "Tsk.", "Mi paciencia se agota."],
+            "idle": [
+                "¿Y ahora qué?", "Observo... juzgo...", "Mmh.", "El mar me llama.",
+                "¿Aburrido? Yo también.", "Silencio...", "¿Qué planeas?",
+                "Estoy aquí, mirándote trabajar.", "¿Necesitas inspiración?",
+                "El tiempo pasa lento...", "Mmmh, interesante.",
+                "¿Pensando en el mar?", "La calma antes de la tormenta.",
+                "Solo observo.", "¿Y bien?", "Esperando...",
+                "Esto es... relajante.", "¿Algo que decir?", "Paz."
+            ],
+            "walk": [
+                "Estirando las piernas.", "Buscando un mejor ángulo.", "Caminando por aquí.",
+                "Explorando tu escritorio.", "Necesitaba moverme.", "Un poco de ejercicio.",
+                "Cambio de perspectiva.", "De paseo por aquí.", "Movilidad artística.",
+                "Caminata reflexiva.", "Ejercicio mental y físico."
+            ],
+            "sleep": [
+                "Zzz...", "No hagas ruido.", "Soñando con Lemuria.",
+                "Cinco minutos más...", "Déjame descansar.", "Sueños de mar...",
+                "Zzzzz...", "Tan cómodo...", "No me despiertes.",
+                "Durmiendo profundamente.", "Shhh...", "Que sueño..."
+            ],
+            "angry": [
+                "¡No me ignores!", "Tsk.", "Mi paciencia se agota.",
+                "¿En serio?", "¡Basta!", "Molesto.", "¡Ugh!",
+                "Irritante.", "¿Qué hiciste?", "No me gusta esto.",
+                "Mi temperamento...", "¡Cuidado!", "Frustrado.",
+                "¿Por qué siempre así?", "¡Argh!"
+            ],
+            "happy": [
+                "¡Perfecto!", "Me gusta esto.", "Bien hecho.",
+                "¡Excelente!", "Así se hace.", "Brillante.",
+                "¡Genial!", "Esto me agrada.", "Muy bien.",
+                "¡Sí!", "¡Fantástico!", "¡Estupendo!",
+                "Me alegra.", "¡Maravilloso!", "¡Increíble!"
+            ],
+            "worry": [
+                "Hmm... preocupante.", "¿Estás seguro?", "Dudas...",
+                "Esto es complicado.", "Ten cuidado.", "Inquietante.",
+                "No estoy seguro de esto.", "¿Qué hacemos?", "Nervioso...",
+                "Esto me preocupa.", "¿Todo bien?", "Cauteloso."
+            ],
+            "art": [
+                "El arte es mi vida.", "Inspiración...", "La belleza...",
+                "Colores y formas.", "Mi pincel...", "Creatividad pura.",
+                "Esto es arte.", "La perfección existe.", "Estética sublime.",
+                "Mi obra maestra.", "Arte en progreso.", "Visión artística."
+            ],
+            "love": [
+                "♡", "Te aprecio.", "Eres especial.",
+                "Mi corazón...", "Sentimientos...", "Dulce.",
+                "Me importas.", "Cariño.", "Afecto genuino.",
+                "Ternura.", "Amor.", "Mi persona favorita."
+            ],
             
             # 1. TAREAS PENDIENTES (Nagging/Persuasivo)
             "pending_tasks": [
@@ -101,7 +154,12 @@ class RafayelMascot(QWidget):
                 "¿Es que acaso disfrutas ver el mundo arder en notificaciones?",
                 "No me hables de inspiración si no puedes terminar lo básico.",
                 "Mi pincel se seca esperando a que te dignes a ser productivo.",
-                "¿Ves eso? Es el fantasma de las tareas que no hiciste ayer."
+                "¿Ves eso? Es el fantasma de las tareas que no hiciste ayer.",
+                "La procrastinación no es arte, es pereza disfrazada.",
+                "¿Cuántos recordatorios necesitas? ¿Pintados en un mural?",
+                "El reloj no perdona, y yo tampoco.",
+                "Tus tareas lloran en silencio. ¿No las oyes?",
+                "Cada minuto perdido es un pincelazo menos en mi lienzo."
                 # ... puedes seguir añadiendo variaciones hasta completar las 100
             ],
 
@@ -126,7 +184,12 @@ class RafayelMascot(QWidget):
                 "A veces la mejor referencia es el silencio del océano.",
                 "¿Estás buscando texturas? Mi ropa es de seda pura, por si preguntas.",
                 "Cuidado con el exceso de saturación. Es de novatos.",
-                "Mira esa sombra. Eso es lo que separa a un artista de un aficionado."
+                "Mira esa sombra. Eso es lo que separa a un artista de un aficionado.",
+                "Los maestros no necesitan referencias. Los aprendices, sí.",
+                "Esa composición tiene potencial. ¿La vas a usar?",
+                "El balance de colores está... aceptable.",
+                "¿Buscando referencias? Mejor busca tu propia voz artística.",
+                "Ese ángulo es interesante. Poco convencional."
                 # ... puedes seguir añadiendo variaciones hasta completar las 100
             ],
 
@@ -151,7 +214,12 @@ class RafayelMascot(QWidget):
                 "Eres más eficiente de lo que pareces. Sigue así.",
                 "¿Ya terminaste? Pensé que te tomaría otra década.",
                 "¡Perfecto! El orden ha vuelto al universo. O al menos a esta app.",
-                "Tarea tachada. Es tan satisfactorio como un lienzo en blanco."
+                "Tarea tachada. Es tan satisfactorio como un lienzo en blanco.",
+                "Productividad nivel artista. Impresionante.",
+                "¡Finalmente! Puedo volver a mi inspiración.",
+                "Eso fue rápido. ¿Estás evolucionando?",
+                "Una tarea menos, una sonrisa más.",
+                "¡Bravo! Digno de un aplauso... virtual."
                 # ... puedes seguir añadiendo variaciones hasta completar las 100
             ]
         }
@@ -162,7 +230,7 @@ class RafayelMascot(QWidget):
         # --- TIMERS ---
         self.behavior_timer = QTimer(self)
         self.behavior_timer.timeout.connect(self.decide_behavior)
-        self.behavior_timer.start(6000) 
+        self.behavior_timer.start(self.BEHAVIOR_TIMER_INTERVAL)  # More stable emotions 
 
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self.check_tasks_background)
@@ -184,13 +252,14 @@ class RafayelMascot(QWidget):
         self.behavior_timer.stop()
         if hasattr(self, 'move_anim') and self.move_anim.state() == QPropertyAnimation.State.Running:
             self.move_anim.pause() 
-            
+        
+        self.is_reacting = True  # Prevent behavior changes during reaction
         self.set_state("happy")
         frases = self.dialogues.get("task_completed", ["¡Hecho!"])
-        self.say(random.choice(frases))
+        self.say(random.choice(frases), autohide=True)
         
-        # Reiniciar el timer de comportamiento para que no cambie de estado justo después de hablar
-        QTimer.singleShot(5000, self.behavior_timer.start)
+        # Reiniciar el timer de comportamiento después de mantener la emoción
+        QTimer.singleShot(self.TASK_REACTION_DURATION, self._end_task_reaction)
 
     def react_to_context(self, context_name):
         self.is_reacting = True 
@@ -205,11 +274,19 @@ class RafayelMascot(QWidget):
         elif context_name == "reference":
             self.set_state("art")
             self.say("Busca algo digno de mi pincel.", autohide=False)
+        elif context_name == "settings":
+            self.set_state("happy")
+            self.say("Ajustando cosas... No arruines mi estética.", autohide=False)
 
 
     def _end_reaction(self):
         self.is_reacting = False
-        self.behavior_timer.start(6000)
+        self.behavior_timer.start(self.BEHAVIOR_TIMER_INTERVAL)
+    
+    def _end_task_reaction(self):
+        """End task completion reaction and resume normal behavior"""
+        self.is_reacting = False
+        self.behavior_timer.start(self.BEHAVIOR_TIMER_INTERVAL)
 
     def force_on_top(self):
         self.raise_()
