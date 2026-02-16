@@ -277,6 +277,12 @@ class RafayelMascot(QWidget):
 
     def notify_task_completed(self):
         """Reacción inmediata sin interrumpir drásticamente"""
+        # If we're in a context, don't react to task completion the same way
+        if self.current_context:
+            # Just show a brief message without changing emotion
+            self.say(random.choice(self.dialogues.get("task_completed", ["¡Hecho!"])), autohide=True)
+            return
+        
         # Detenemos temporalmente el movimiento aleatorio para que hable
         self.behavior_timer.stop()
         if hasattr(self, 'move_anim') and self.move_anim.state() == QPropertyAnimation.State.Running:
@@ -330,6 +336,11 @@ class RafayelMascot(QWidget):
         self.raise_()
 
     def check_tasks_background(self):
+        """Check for urgent tasks in the background, but respect current context."""
+        # Don't interrupt if we're in a specific context
+        if self.current_context:
+            return
+        
         try:
             tasks = TaskManager.load_tasks()
             priority = TaskManager.get_smart_priority_color(tasks)
