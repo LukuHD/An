@@ -7,6 +7,10 @@ from PyQt6.QtGui import QPixmap, QGuiApplication, QTransform
 from modules.schedule_tool import TaskManager
 
 class RafayelMascot(QWidget):
+    # Constants
+    BEHAVIOR_TIMER_INTERVAL = 10000  # Time in ms between behavior changes
+    TASK_REACTION_DURATION = 8000    # Time in ms to maintain task completion emotion
+    
     def __init__(self):
         super().__init__()
         
@@ -226,7 +230,7 @@ class RafayelMascot(QWidget):
         # --- TIMERS ---
         self.behavior_timer = QTimer(self)
         self.behavior_timer.timeout.connect(self.decide_behavior)
-        self.behavior_timer.start(10000)  # Increased from 6000 to 10000ms for more stable emotions 
+        self.behavior_timer.start(self.BEHAVIOR_TIMER_INTERVAL)  # More stable emotions 
 
         self.status_timer = QTimer(self)
         self.status_timer.timeout.connect(self.check_tasks_background)
@@ -254,8 +258,8 @@ class RafayelMascot(QWidget):
         frases = self.dialogues.get("task_completed", ["¡Hecho!"])
         self.say(random.choice(frases), autohide=True)
         
-        # Reiniciar el timer de comportamiento después de 8 segundos para mantener la emoción
-        QTimer.singleShot(8000, self._end_task_reaction)
+        # Reiniciar el timer de comportamiento después de mantener la emoción
+        QTimer.singleShot(self.TASK_REACTION_DURATION, self._end_task_reaction)
 
     def react_to_context(self, context_name):
         self.is_reacting = True 
@@ -277,12 +281,12 @@ class RafayelMascot(QWidget):
 
     def _end_reaction(self):
         self.is_reacting = False
-        self.behavior_timer.start(10000)
+        self.behavior_timer.start(self.BEHAVIOR_TIMER_INTERVAL)
     
     def _end_task_reaction(self):
         """End task completion reaction and resume normal behavior"""
         self.is_reacting = False
-        self.behavior_timer.start(10000)
+        self.behavior_timer.start(self.BEHAVIOR_TIMER_INTERVAL)
 
     def force_on_top(self):
         self.raise_()

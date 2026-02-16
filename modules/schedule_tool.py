@@ -6,7 +6,7 @@ from datetime import datetime
 from PyQt6.QtWidgets import (QMainWindow, QLabel, QVBoxLayout, QWidget, QPushButton, 
                              QHBoxLayout, QLineEdit, QDateEdit, QComboBox, QScrollArea, 
                              QFrame, QGraphicsOpacityEffect)
-from PyQt6.QtCore import Qt, pyqtSignal, QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup
+from PyQt6.QtCore import Qt, pyqtSignal, QDate, QPropertyAnimation, QEasingCurve, QParallelAnimationGroup, QTimer
 from PyQt6.QtGui import QFont, QColor, QPalette, QBrush, QPixmap
 
 # Importamos los componentes visuales y el gestor de configuración
@@ -300,7 +300,6 @@ class ScheduleApp(QMainWindow):
         # Limpiamos el input después de agregar la tarjeta
         self.inp_title.clear()
         # Usamos QTimer para asegurar que el focus se establece después de cualquier evento de UI
-        from PyQt6.QtCore import QTimer
         QTimer.singleShot(0, lambda: self.inp_title.setFocus())
 
     def remove_task(self, task):
