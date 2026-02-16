@@ -149,11 +149,11 @@ class MainDashboard(QMainWindow):
         self.check_urgency_status()
         if hasattr(self, 'mascot'):
             self.mascot.is_reacting = False
-        # Forzamos a que se oculte el globo viejo antes de mostrar el nuevo
+            # Forzamos a que se oculte el globo viejo antes de mostrar el nuevo
             self.mascot.bubble.hide() 
-            self.mascot.behavior_timer.start(6000)
+            self.mascot.behavior_timer.start(10000)
             self.mascot.set_state("happy")
-        # El mensaje de bienvenida sí puede desaparecer solo
+            # El mensaje de bienvenida sí puede desaparecer solo
             self.mascot.say("¡Bienvenido de vuelta!", autohide=True) 
         animate_window_open(self)
 
