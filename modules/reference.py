@@ -575,6 +575,12 @@ class ReferenceFrame(QMainWindow):
     def closeEvent(self, event):
         """Se ejecuta cuando se llama a self.close()"""
         
+        # End the reference context
+        from modules.mascot import MascotManager
+        mascot = MascotManager.get_mascot()
+        if mascot and mascot.current_context == "reference":
+            mascot.end_context()
+        
         # 1. Eliminar referencias en la lista global para permitir Garbage Collection
         app = QApplication.instance()
         if hasattr(app, 'extra_layers') and self in app.extra_layers:
@@ -598,6 +604,11 @@ class ReferenceFrame(QMainWindow):
         self.tray.show()
 
     def _go_home(self):
+        # End the reference context
+        from modules.mascot import MascotManager
+        mascot = MascotManager.get_mascot()
+        if mascot and mascot.current_context == "reference":
+            mascot.end_context()
         self.hide()
         self.return_to_main.emit()
 

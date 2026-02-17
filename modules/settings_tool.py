@@ -259,9 +259,21 @@ class SettingsApp(QMainWindow):
         msg.setStyleSheet("background-color: #222; color: white;")
         msg.exec()
         
+        # End settings context
+        from modules.mascot import MascotManager
+        mascot = MascotManager.get_mascot()
+        if mascot and mascot.current_context == "settings":
+            mascot.end_context()
+        
         self.hide()
         self.return_to_main.emit(True)
 
     def close_no_save(self):
+        # End settings context
+        from modules.mascot import MascotManager
+        mascot = MascotManager.get_mascot()
+        if mascot and mascot.current_context == "settings":
+            mascot.end_context()
+        
         self.hide()
         self.return_to_main.emit(False)

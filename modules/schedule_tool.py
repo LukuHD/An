@@ -330,3 +330,20 @@ class ScheduleApp(QMainWindow):
     def go_back(self):
         self.hide()
         self.return_to_main.emit()
+    
+    def closeEvent(self, event):
+        """
+        Overrides QMainWindow.closeEvent to ensure proper cleanup.
+        
+        In addition to the parent class's default window closing behavior,
+        this method ensures the mascot's schedule context is properly ended
+        so the mascot can return to normal behavior when this window closes.
+        
+        Args:
+            event: QCloseEvent from PyQt6
+        """
+        from modules.mascot import MascotManager
+        mascot = MascotManager.get_mascot()
+        if mascot and mascot.current_context == "schedule":
+            mascot.end_context()
+        super().closeEvent(event)

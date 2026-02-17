@@ -11,7 +11,7 @@ from modules.schedule_tool import ScheduleApp, TaskManager
 from modules.settings_tool import SettingsApp
 from modules.ui_components import PulseButton, DraggableTitleBar, animate_window_open
 from modules.config_manager import ConfigManager
-from modules.mascot import RafayelMascot # Importación de la mascota
+from modules.mascot import MascotManager  # Import the manager instead
 
 class MainDashboard(QMainWindow):
     def __init__(self):
@@ -77,9 +77,8 @@ class MainDashboard(QMainWindow):
 
         self.check_urgency_status()
 
-        # Iniciar Mascota
-        self.mascot = RafayelMascot()
-        self.mascot.show()
+        # Get the singleton mascot instance
+        self.mascot = MascotManager.get_mascot()
 
     def apply_theme(self):
         bg_style = f"background-color: {self.theme['background']};"
@@ -146,14 +145,11 @@ class MainDashboard(QMainWindow):
 
     def show_main_and_refresh(self):
         self.check_urgency_status()
-        if hasattr(self, 'mascot'):
-            self.mascot.is_reacting = False
-            # Forzamos a que se oculte el globo viejo antes de mostrar el nuevo
-            self.mascot.bubble.hide() 
-            self.mascot.behavior_timer.start(self.mascot.BEHAVIOR_TIMER_INTERVAL)
-            self.mascot.set_state("happy")
-            # El mensaje de bienvenida sí puede desaparecer solo
-            self.mascot.say("¡Bienvenido de vuelta!", autohide=True) 
+        if hasattr(self, 'mascot') and self.mascot:
+            # End any active context and return to normal behavior
+            self.mascot.end_context()
+            # Show welcome back message
+            self.mascot.say("¡Bienvenido de vuelta!", autohide=True)
         animate_window_open(self)
 
 if __name__ == "__main__":

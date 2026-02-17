@@ -6,6 +6,34 @@ from PyQt6.QtCore import Qt, QTimer, QPoint, QPropertyAnimation, QEasingCurve
 from PyQt6.QtGui import QPixmap, QGuiApplication, QTransform
 from modules.schedule_tool import TaskManager
 
+# Singleton pattern for global mascot management
+class MascotManager:
+    _instance = None
+    _mascot = None
+    
+    @classmethod
+    def get_instance(cls):
+        """Get or create the singleton mascot instance."""
+        if cls._instance is None:
+            cls._instance = cls()
+        return cls._instance
+    
+    @classmethod
+    def get_mascot(cls):
+        """Get the mascot instance, creating it if necessary."""
+        manager = cls.get_instance()
+        if manager._mascot is None:
+            manager._mascot = RafayelMascot()
+            manager._mascot.show()
+        return manager._mascot
+    
+    @classmethod
+    def cleanup(cls):
+        """Cleanup mascot instance."""
+        if cls._instance and cls._instance._mascot:
+            cls._instance._mascot.close()
+            cls._instance._mascot = None
+
 class RafayelMascot(QWidget):
     # Constants
     BEHAVIOR_TIMER_INTERVAL = 10000  # Time in ms between behavior changes
@@ -62,7 +90,8 @@ class RafayelMascot(QWidget):
         self.is_reacting = False
         self.is_dragging = False
         self.drag_pos = QPoint()
-        self.facing_right = True 
+        self.facing_right = True
+        self.current_context = None  # Track which context we're in (schedule, reference, settings, etc.)
         
         self.image_paths = {
             "idle": "modules/assets/rafayel_idle.png",
@@ -248,6 +277,12 @@ class RafayelMascot(QWidget):
 
     def notify_task_completed(self):
         """Reacción inmediata sin interrumpir drásticamente"""
+        # If we're in a context, don't react to task completion the same way
+        if self.current_context:
+            # Just show a brief message without changing emotion
+            self.say(random.choice(self.dialogues.get("task_completed", ["¡Hecho!"])), autohide=True)
+            return
+        
         # Detenemos temporalmente el movimiento aleatorio para que hable
         self.behavior_timer.stop()
         if hasattr(self, 'move_anim') and self.move_anim.state() == QPropertyAnimation.State.Running:
@@ -262,14 +297,30 @@ class RafayelMascot(QWidget):
         QTimer.singleShot(self.TASK_REACTION_DURATION, self._end_task_reaction)
 
     def react_to_context(self, context_name):
-        self.is_reacting = True 
+        """
+        React to a specific context and maintain the emotion until explicitly ended.
+        
+        Args:
+            context_name (str): The context to enter. Valid values:
+                - 'schedule': Sets worry emotion with persistent task message
+                - 'reference': Sets art emotion with persistent inspiration message
+                - 'settings': Sets happy emotion with persistent settings message
+        
+        The mascot will maintain the specified emotion and message until end_context()
+        is called. Behavior timers are stopped to prevent state changes.
+        """
+        self.is_reacting = True
+        self.current_context = context_name
+        # Stop timers to prevent behavior changes during context
         self.behavior_timer.stop()
-    
-    # Cancelar cualquier ocultación programada previa si es posible
-    # o simplemente asegurar que el nuevo mensaje sea persistente
+        
+        # Hide any previous bubble before showing new context message
+        self.bubble.hide()
+        
+        # Set emotion and message based on context
         if context_name == "schedule":
             self.set_state("worry")
-        # Usamos autohide=False para que el texto se quede mientras escribes
+            # Persistent message - stays until context ends
             self.say("¿Tantas tareas? Ánimo, estaré vigilando...", autohide=False)
         elif context_name == "reference":
             self.set_state("art")
@@ -277,11 +328,23 @@ class RafayelMascot(QWidget):
         elif context_name == "settings":
             self.set_state("happy")
             self.say("Ajustando cosas... No arruines mi estética.", autohide=False)
-
-
-    def _end_reaction(self):
+    
+    def end_context(self):
+        """
+        End the current context and return to normal behavior.
+        
+        This method is safe to call unconditionally, even when no context is active.
+        It will:
+        - Clear the current context
+        - Hide the persistent message bubble
+        - Restart behavior timers
+        - Reset the mascot to 'happy' state
+        """
         self.is_reacting = False
+        self.current_context = None
+        self.bubble.hide()
         self.behavior_timer.start(self.BEHAVIOR_TIMER_INTERVAL)
+        self.set_state("happy")
     
     def _end_task_reaction(self):
         """End task completion reaction and resume normal behavior"""
@@ -289,10 +352,16 @@ class RafayelMascot(QWidget):
         self.behavior_timer.start(self.BEHAVIOR_TIMER_INTERVAL)
 
     def force_on_top(self):
+        """Keep mascot on top, but don't steal focus from other windows."""
+        # Only raise the mascot, don't activate it (which would steal focus)
         self.raise_()
-        self.activateWindow()
 
     def check_tasks_background(self):
+        """Check for urgent tasks in the background, but respect current context."""
+        # Don't interrupt if we're in a specific context
+        if self.current_context:
+            return
+        
         try:
             tasks = TaskManager.load_tasks()
             priority = TaskManager.get_smart_priority_color(tasks)
@@ -303,8 +372,9 @@ class RafayelMascot(QWidget):
             print(f"Error checking tasks: {e}")
 
     def decide_behavior(self):
-
-        if self.is_reacting: 
+        """Decide next behavior - but respect if we're in a specific context."""
+        # Don't change behavior if we're reacting or in a specific context
+        if self.is_reacting or self.current_context:
             return
         
         if self.current_state == "sleep" and random.random() > 0.2:
