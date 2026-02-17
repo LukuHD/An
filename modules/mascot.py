@@ -91,7 +91,7 @@ class RafayelMascot(QWidget):
         self.is_dragging = False
         self.drag_pos = QPoint()
         self.facing_right = True
-        self.current_context = None  # Track which context we're in (schedule, reference, settings, etc.) 
+        self.current_context = None  # Track which context we're in (schedule, reference, settings, etc.)
         
         self.image_paths = {
             "idle": "modules/assets/rafayel_idle.png",
@@ -311,9 +311,10 @@ class RafayelMascot(QWidget):
         """
         self.is_reacting = True
         self.current_context = context_name
+        # Stop timers to prevent behavior changes during context
         self.behavior_timer.stop()
         
-        # Hide any previous bubble first
+        # Hide any previous bubble before showing new context message
         self.bubble.hide()
         
         # Set emotion and message based on context
