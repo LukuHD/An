@@ -297,7 +297,18 @@ class RafayelMascot(QWidget):
         QTimer.singleShot(self.TASK_REACTION_DURATION, self._end_task_reaction)
 
     def react_to_context(self, context_name):
-        """React to a specific context and maintain the emotion until explicitly ended."""
+        """
+        React to a specific context and maintain the emotion until explicitly ended.
+        
+        Args:
+            context_name (str): The context to enter. Valid values:
+                - 'schedule': Sets worry emotion with persistent task message
+                - 'reference': Sets art emotion with persistent inspiration message
+                - 'settings': Sets happy emotion with persistent settings message
+        
+        The mascot will maintain the specified emotion and message until end_context()
+        is called. Behavior timers are stopped to prevent state changes.
+        """
         self.is_reacting = True
         self.current_context = context_name
         self.behavior_timer.stop()
@@ -318,7 +329,16 @@ class RafayelMascot(QWidget):
             self.say("Ajustando cosas... No arruines mi estética.", autohide=False)
     
     def end_context(self):
-        """End the current context and return to normal behavior."""
+        """
+        End the current context and return to normal behavior.
+        
+        This method is safe to call unconditionally, even when no context is active.
+        It will:
+        - Clear the current context
+        - Hide the persistent message bubble
+        - Restart behavior timers
+        - Reset the mascot to 'happy' state
+        """
         self.is_reacting = False
         self.current_context = None
         self.bubble.hide()
